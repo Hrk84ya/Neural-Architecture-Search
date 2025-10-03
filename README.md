@@ -32,7 +32,7 @@ An implementation of Evolutionary Neural Architecture Search for automatically d
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/Hrk84ya/Neural-Architecture-Search.git](https://github.com/Hrk84ya/Neural-Architecture-Search.git)
+   git clone https://github.com/Hrk84ya/Neural-Architecture-Search.git
    cd Neural-Architecture-Search
 
 2. Install the required dependencies:
