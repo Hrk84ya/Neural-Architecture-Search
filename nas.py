@@ -363,10 +363,86 @@ class EvolutionaryNAS:
             print(f"  ⚠ Error evaluating architecture: {e}")
             return 0.0, 0.0, 0
 
+    def pareto_selection(self, population):
+        """Select architectures based on Pareto optimality (accuracy vs efficiency)"""
+        pareto_front = []
+        
+        for candidate in population:
+            is_dominated = False
+            
+            # Check if candidate is dominated by any other individual
+            for other in population:
+                if (other['accuracy'] >= candidate['accuracy'] and 
+                    other['efficiency'] >= candidate['efficiency'] and
+                    (other['accuracy'] > candidate['accuracy'] or 
+                     other['efficiency'] > candidate['efficiency'])):
+                    is_dominated = True
+                    break
+            
+            if not is_dominated:
+                pareto_front.append(candidate)
+        
+        return pareto_front
+    
+    def crowding_distance_selection(self, pareto_front, target_size):
+        """Select diverse solutions from Pareto front using crowding distance"""
+        if len(pareto_front) <= target_size:
+            return pareto_front
+        
+        # Calculate crowding distance for each solution
+        for individual in pareto_front:
+            individual['crowding_distance'] = 0.0
+        
+        # Sort by each objective and assign crowding distance
+        objectives = ['accuracy', 'efficiency']
+        
+        for obj in objectives:
+            # Sort by current objective
+            pareto_front.sort(key=lambda x: x[obj])
+            
+            # Set boundary solutions to infinite distance
+            pareto_front[0]['crowding_distance'] = float('inf')
+            pareto_front[-1]['crowding_distance'] = float('inf')
+            
+            # Calculate crowding distance for intermediate solutions
+            obj_range = pareto_front[-1][obj] - pareto_front[0][obj]
+            if obj_range > 0:
+                for i in range(1, len(pareto_front) - 1):
+                    distance = (pareto_front[i+1][obj] - pareto_front[i-1][obj]) / obj_range
+                    pareto_front[i]['crowding_distance'] += distance
+        
+        # Select solutions with highest crowding distance
+        pareto_front.sort(key=lambda x: x['crowding_distance'], reverse=True)
+        return pareto_front[:target_size]
+    
+    def multi_objective_selection(self, population, target_size):
+        """Multi-objective selection combining Pareto optimality and crowding distance"""
+        # Find Pareto front
+        pareto_front = self.pareto_selection(population)
+        
+        print(f"   🎯 Pareto Front Size: {len(pareto_front)}")
+        
+        # If Pareto front is larger than target, use crowding distance
+        if len(pareto_front) > target_size:
+            selected = self.crowding_distance_selection(pareto_front, target_size)
+            print(f"   📏 Applied crowding distance selection")
+        else:
+            selected = pareto_front
+            
+            # Fill remaining slots with best efficiency scores from non-dominated
+            remaining_slots = target_size - len(selected)
+            if remaining_slots > 0:
+                non_pareto = [ind for ind in population if ind not in pareto_front]
+                non_pareto.sort(key=lambda x: x['efficiency'], reverse=True)
+                selected.extend(non_pareto[:remaining_slots])
+                print(f"   ➕ Added {remaining_slots} high-efficiency solutions")
+        
+        return selected
+
     def search(self, x_train, y_train, x_val, y_val):
-        """Run evolutionary architecture search"""
+        """Run evolutionary architecture search with multi-objective optimization"""
         print("="*80)
-        print("EVOLUTIONARY NEURAL ARCHITECTURE SEARCH")
+        print("MULTI-OBJECTIVE EVOLUTIONARY NEURAL ARCHITECTURE SEARCH")
         print("="*80)
         print(f"Configuration:")
         print(f"  Population Size: {self.config.population_size}")
@@ -375,6 +451,7 @@ class EvolutionaryNAS:
         print(f"  Mutation Rate: {self.config.mutation_rate}")
         print(f"  Training Samples: {len(x_train)}")
         print(f"  Validation Samples: {len(x_val)}")
+        print(f"  Objectives: Accuracy ⚖️ Model Efficiency")
         print("="*80 + "\n")
 
         # Initialize population
@@ -412,8 +489,18 @@ class EvolutionaryNAS:
             print(f"🧬 GENERATION {gen}/{self.config.max_generations}")
             print("-"*80)
 
-            # Sort by efficiency score
+            # Sort by efficiency score for display purposes
             self.population.sort(key=lambda x: x['efficiency'], reverse=True)
+            
+            # Analyze Pareto front
+            pareto_front = self.pareto_selection(self.population)
+            pareto_accuracies = [p['accuracy'] for p in pareto_front]
+            pareto_params = [p['params'] for p in pareto_front]
+            
+            print(f"📊 Pareto Front Analysis:")
+            print(f"   Size: {len(pareto_front)} solutions")
+            print(f"   Accuracy Range: {min(pareto_accuracies):.4f} - {max(pareto_accuracies):.4f}")
+            print(f"   Parameter Range: {min(pareto_params):,} - {max(pareto_params):,}")
 
             # Track history
             gen_stats = {
@@ -438,10 +525,10 @@ class EvolutionaryNAS:
             print(f"   Avg Accuracy:  {gen_stats['avg_accuracy']:.4f}")
             print(f"   Best Params:   {gen_stats['best_params']:,}")
 
-            # Selection: keep top 50%
+            # Multi-objective selection using Pareto optimality
             num_survivors = self.config.population_size // 2
-            survivors = self.population[:num_survivors]
-            print(f"\n🏆 Top {num_survivors} survivors selected for breeding")
+            survivors = self.multi_objective_selection(self.population, num_survivors)
+            print(f"\n🏆 Selected {len(survivors)} Pareto-optimal survivors for breeding")
 
             # Create new population
             new_population = [s.copy() for s in survivors]
@@ -502,7 +589,7 @@ class EvolutionaryNAS:
         return self.best_architecture
 
     def plot_results(self):
-        """Visualize search results with comprehensive plots"""
+        """Visualize search results with comprehensive plots including Pareto analysis"""
         if not self.history:
             print("No history to plot")
             return
@@ -519,8 +606,8 @@ class EvolutionaryNAS:
         avg_acc = [float(np.mean([p['accuracy'] for p in self.population[:self.config.population_size]]))] + avg_acc
         params = [gen0_best['params'] / 1e6] + params
 
-        fig = plt.figure(figsize=(16, 10))
-        gs = fig.add_gridspec(3, 2, hspace=0.3, wspace=0.3)
+        fig = plt.figure(figsize=(18, 12))
+        gs = fig.add_gridspec(4, 2, hspace=0.35, wspace=0.3)
 
         # 1. Accuracy Evolution
         ax1 = fig.add_subplot(gs[0, :])
@@ -546,31 +633,98 @@ class EvolutionaryNAS:
         ax2.set_title('📊 Best Model Complexity', fontsize=14, fontweight='bold', pad=10)
         ax2.grid(True, alpha=0.3, linestyle='--')
 
-        # 3. Accuracy vs Complexity
+        # 3. Pareto Front Visualization
         ax3 = fig.add_subplot(gs[1, 1])
-        scatter = ax3.scatter(params, best_acc, c=generations, cmap='viridis',
-                             s=150, alpha=0.7, edgecolors='black', linewidth=1.5)
+        
+        # Plot all population points
+        all_acc = []
+        all_params = []
+        all_gens = []
+        
+        for gen_best in self.generation_best:
+            all_acc.append(gen_best['accuracy'])
+            all_params.append(gen_best['params'] / 1e6)
+            all_gens.append(gen_best['generation'])
+        
+        # Plot evolution path
+        ax3.plot(all_params, all_acc, 'b-', alpha=0.3, linewidth=1, label='Evolution Path')
+        
+        # Plot current Pareto front
+        final_pareto = self.pareto_selection(self.population)
+        pareto_acc = [p['accuracy'] for p in final_pareto]
+        pareto_params = [p['params'] / 1e6 for p in final_pareto]
+        
+        ax3.scatter(all_params, all_acc, c=all_gens, cmap='viridis',
+                   s=100, alpha=0.6, edgecolors='gray', linewidth=1, label='Generation Best')
+        ax3.scatter(pareto_params, pareto_acc, c='red', s=200, alpha=0.8, 
+                   edgecolors='darkred', linewidth=2, marker='*', label='Pareto Front')
+        
         ax3.set_xlabel('Parameters (Millions)', fontsize=12, fontweight='bold')
         ax3.set_ylabel('Accuracy', fontsize=12, fontweight='bold')
-        ax3.set_title('⚖️ Accuracy vs Complexity', fontsize=14, fontweight='bold', pad=10)
+        ax3.set_title('🎯 Pareto Front Analysis', fontsize=14, fontweight='bold', pad=10)
         ax3.grid(True, alpha=0.3, linestyle='--')
-        cbar = plt.colorbar(scatter, ax=ax3)
-        cbar.set_label('Generation', fontsize=10, fontweight='bold')
+        ax3.legend(fontsize=10)
 
-        # 4. Improvement per Generation
+        # 4. Multi-Objective Progress
         ax4 = fig.add_subplot(gs[2, 0])
-        improvements = [0] + [best_acc[i] - best_acc[i-1] for i in range(1, len(best_acc))]
-        colors = ['green' if x >= 0 else 'red' for x in improvements]
-        ax4.bar(generations, improvements, color=colors, alpha=0.7, edgecolor='black')
-        ax4.axhline(y=0, color='black', linestyle='-', linewidth=1)
+        
+        # Calculate hypervolume approximation (area under Pareto front)
+        hypervolumes = []
+        for gen in range(len(self.generation_best)):
+            # Get population at this generation
+            gen_pop = [p for p in self.population if p.get('generation', 0) <= gen]
+            if gen_pop:
+                pareto = self.pareto_selection(gen_pop)
+                # Simple hypervolume approximation
+                if pareto:
+                    max_acc = max(p['accuracy'] for p in pareto)
+                    min_params = min(p['params'] for p in pareto) / 1e6
+                    hv = max_acc * (10 - min_params) if min_params < 10 else max_acc
+                    hypervolumes.append(hv)
+                else:
+                    hypervolumes.append(0)
+            else:
+                hypervolumes.append(0)
+        
+        ax4.plot(range(len(hypervolumes)), hypervolumes, 'g-o', linewidth=2.5, markersize=8)
         ax4.set_xlabel('Generation', fontsize=12, fontweight='bold')
-        ax4.set_ylabel('Accuracy Improvement', fontsize=12, fontweight='bold')
-        ax4.set_title('📈 Generation-to-Generation Improvement', fontsize=14, fontweight='bold', pad=10)
-        ax4.grid(True, alpha=0.3, linestyle='--', axis='y')
+        ax4.set_ylabel('Hypervolume (Approx)', fontsize=12, fontweight='bold')
+        ax4.set_title('📊 Multi-Objective Progress', fontsize=14, fontweight='bold', pad=10)
+        ax4.grid(True, alpha=0.3, linestyle='--')
 
-        # 5. Summary Statistics
+        # 5. Pareto Front Details
         ax5 = fig.add_subplot(gs[2, 1])
+        
+        # Show final Pareto front solutions
+        final_pareto = self.pareto_selection(self.population)
+        pareto_acc = [p['accuracy'] for p in final_pareto]
+        pareto_params = [p['params'] / 1e6 for p in final_pareto]
+        pareto_eff = [p['efficiency'] for p in final_pareto]
+        
+        # Create a table-like visualization
         ax5.axis('off')
+        
+        # Sort Pareto solutions by accuracy
+        pareto_sorted = sorted(zip(pareto_acc, pareto_params, pareto_eff), reverse=True)
+        
+        table_text = "🏆 FINAL PARETO FRONT\n" + "="*35 + "\n"
+        table_text += f"{'Rank':<4} {'Accuracy':<9} {'Params(M)':<9} {'Efficiency':<10}\n"
+        table_text += "-"*35 + "\n"
+        
+        for i, (acc, param, eff) in enumerate(pareto_sorted[:8]):  # Show top 8
+            table_text += f"{i+1:<4} {acc:<9.4f} {param:<9.2f} {eff:<10.4f}\n"
+        
+        if len(pareto_sorted) > 8:
+            table_text += f"... and {len(pareto_sorted)-8} more solutions\n"
+        
+        ax5.text(0.05, 0.95, table_text, transform=ax5.transAxes,
+                fontsize=10, verticalalignment='top', horizontalalignment='left',
+                fontfamily='monospace', 
+                bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
+
+        # 6. Summary Statistics
+        ax6 = fig.add_subplot(gs[3, 0])
+        ax6.axis('off')
 
         summary_text = f"""
         ╔══════════════════════════════════════╗
@@ -584,15 +738,33 @@ class EvolutionaryNAS:
         ║  🧬 Generations: {len(generations)-1}              ║
         ║  👥 Population Size: {self.config.population_size}           ║
         ║  ⏱️  Epochs/Eval: {self.config.epochs_per_eval}             ║
+        ║  🎯 Pareto Solutions: {len(final_pareto)}           ║
         ║                                      ║
         ╚══════════════════════════════════════╝
         """
 
-        ax5.text(0.5, 0.5, summary_text, transform=ax5.transAxes,
+        ax6.text(0.5, 0.5, summary_text, transform=ax6.transAxes,
                 fontsize=11, verticalalignment='center', horizontalalignment='center',
                 fontfamily='monospace', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
 
-        plt.suptitle('🔬 Neural Architecture Search Results',
+        # 7. Efficiency Distribution
+        ax7 = fig.add_subplot(gs[3, 1])
+        
+        all_efficiencies = [p['efficiency'] for p in self.population]
+        pareto_efficiencies = [p['efficiency'] for p in final_pareto]
+        
+        ax7.hist(all_efficiencies, bins=15, alpha=0.6, color='lightblue', 
+                label='All Population', edgecolor='black')
+        ax7.hist(pareto_efficiencies, bins=10, alpha=0.8, color='red', 
+                label='Pareto Front', edgecolor='darkred')
+        
+        ax7.set_xlabel('Efficiency Score', fontsize=12, fontweight='bold')
+        ax7.set_ylabel('Frequency', fontsize=12, fontweight='bold')
+        ax7.set_title('⚖️ Efficiency Distribution', fontsize=14, fontweight='bold', pad=10)
+        ax7.legend(fontsize=10)
+        ax7.grid(True, alpha=0.3, linestyle='--', axis='y')
+
+        plt.suptitle('🔬 Multi-Objective Neural Architecture Search Results',
                     fontsize=18, fontweight='bold', y=0.995)
 
         plt.savefig('nas_complete_results.png', dpi=300, bbox_inches='tight', facecolor='white')
