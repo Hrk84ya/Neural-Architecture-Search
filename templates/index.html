@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Architecture Search - Professional Interface</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧬 Neural Architecture Search</h1>
+            <p>Evolutionary Algorithm for Automatic CNN Architecture Discovery</p>
+        </div>
+
+        <div class="main-grid">
+            <div class="config-panel">
+                <div class="config-section">
+                    <h3>📊 Dataset Configuration</h3>
+                    <div class="form-group">
+                        <label for="train_samples">Training Samples</label>
+                        <input type="number" id="train_samples" value="5000" min="100" max="50000" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="val_samples">Validation Samples</label>
+                        <input type="number" id="val_samples" value="1000" min="50" max="10000" step="50">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>🧬 Evolution Parameters</h3>
+                    <div class="form-group">
+                        <label for="population_size">Population Size</label>
+                        <input type="number" id="population_size" value="4" min="2" max="20">
+                    </div>
+                    <div class="form-group">
+                        <label for="max_generations">Max Generations</label>
+                        <input type="number" id="max_generations" value="3" min="1" max="50">
+                    </div>
+                    <div class="form-group">
+                        <label for="mutation_rate">Mutation Rate</label>
+                        <input type="number" id="mutation_rate" value="0.3" min="0" max="1" step="0.1">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>⚙️ Training Settings</h3>
+                    <div class="form-group">
+                        <label for="epochs_per_eval">Epochs per Evaluation</label>
+                        <input type="number" id="epochs_per_eval" value="5" min="1" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="batch_size">Batch Size</label>
+                        <select id="batch_size">
+                            <option value="32">32</option>
+                            <option value="64" selected>64</option>
+                            <option value="128">128</option>
+                            <option value="256">256</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="early_stopping_patience">Early Stopping Patience</label>
+                        <input type="number" id="early_stopping_patience" value="3" min="1" max="20">
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-panel">
+                <div class="status-bar">
+                    <div class="status-info">
+                        <h4>Search Status</h4>
+                        <div class="status-text" id="status-text">Ready to start search</div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab active" data-tab="logs">📋 Search Logs</button>
+                    <button class="tab" data-tab="architecture">🏗️ Best Architecture</button>
+                    <button class="tab" data-tab="visualization">📊 Results Visualization</button>
+                </div>
+
+                <div id="logs-content" class="tab-content active">
+                    <div class="log-container" id="log-container">
+                        <div class="log-entry">Ready to start Neural Architecture Search...</div>
+                        <div class="log-entry">Configure your parameters and click 'Start Search' to begin.</div>
+                    </div>
+                </div>
+
+                <div id="architecture-content" class="tab-content">
+                    <div class="architecture-display" id="architecture-display">No architecture discovered yet.
+
+Run a search to see the best found architecture here.</div>
+                </div>
+
+                <div id="visualization-content" class="tab-content">
+                    <div class="visualization-container" id="visualization-container">
+                        <div>
+                            <h3 style="margin-bottom: 10px; color: #666;">📊 Search Results Visualization</h3>
+                            <p>Complete a search to view performance charts and evolution progress.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="start-btn">🚀 Start Search</button>
+            <button class="btn btn-danger" id="stop-btn" disabled>⏹️ Stop Search</button>
+            <button class="btn btn-success" id="export-btn">💾 Export Results</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

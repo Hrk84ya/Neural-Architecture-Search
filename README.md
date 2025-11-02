@@ -1,94 +1,134 @@
-# Neural Architecture Search (NAS) with Evolutionary Algorithms
+# Neural Architecture Search (NAS) with Professional GUI
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![TensorFlow 2.x](https://img.shields.io/badge/TensorFlow-2.x-orange.svg)](https://www.tensorflow.org/)
+[![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An implementation of Evolutionary Neural Architecture Search for automatically discovering optimal CNN architectures for image classification tasks, demonstrated on the CIFAR-10 dataset.
+A professional web-based Neural Architecture Search implementation with evolutionary algorithms for automatically discovering optimal CNN architectures. Features a modern, interactive GUI for real-time monitoring and control.
 
-## Features
+## 🎯 Features
 
-- 🧬 **Evolutionary Search**: Implements a population-based evolutionary algorithm to explore the architecture space
-- 🏗️ **Modular Architecture Space**: Supports various CNN block types including:
-  - Standard Convolutional Blocks
-  - Depthwise Separable Convolutions
-  - Residual Connections
-  - Inception-style Blocks
-- ⚡ **Efficient Training**:
-  - Early Stopping
-  - Learning Rate Reduction
-  - Data Augmentation
-- 📊 **Visualization**: Built-in plotting of search progress and architecture performance
+### Core NAS Engine
+- 🧬 **Evolutionary Search**: Population-based algorithm exploring architecture space
+- 🏗️ **Modular Architecture Space**: Conv, Separable, Residual, Inception blocks
+- ⚡ **Efficient Training**: Early stopping, learning rate reduction, data augmentation
 - 🔄 **Reproducibility**: Seeding support for consistent results
 
-## Requirements
+### Professional Web GUI
+- 🌐 **Modern Interface**: Professional blue gradient design with glass morphism
+- 📊 **Real-time Monitoring**: Live progress tracking and status updates
+- 📋 **Interactive Logs**: Terminal-style logs with color coding
+- 📈 **Visualizations**: Dynamic charts showing search evolution
+- ⚙️ **Easy Configuration**: Intuitive parameter controls with validation
+- 💾 **Export Results**: Save architectures and search results
 
-- Python 3.8+
-- TensorFlow 2.8.0+
-- NumPy 1.19.2+
-- Matplotlib 3.5.0+
+## 🚀 Quick Start
 
-## Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Hrk84ya/Neural-Architecture-Search.git
-   cd Neural-Architecture-Search
-
-2. Install the required dependencies:
+1. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-## Usage
+2. **Launch GUI:**
+   ```bash
+   python run.py
+   ```
+   
+3. **Open browser:** http://localhost:5001
 
-1. Run the NAS search:
+## 📁 Project Structure
+
+```
+NAS/
+├── gui.py              # Main web application
+├── nas.py              # Core NAS implementation
+├── run.py              # Simple launcher
+├── static/
+│   ├── style.css       # Professional styling
+│   └── app.js          # Interactive JavaScript
+├── templates/
+│   └── index.html      # Web interface
+└── requirements.txt    # Dependencies
+```
+
+## 🎛️ GUI Features
+
+### Configuration Panel
+- **Dataset Settings**: Training/validation sample sizes
+- **Evolution Parameters**: Population size, generations, mutation rate
+- **Training Settings**: Epochs, batch size, early stopping
+
+### Results Panel
+- **Search Logs**: Real-time progress with timestamps
+- **Best Architecture**: JSON display of discovered architecture
+- **Visualization**: Interactive charts showing search evolution
+
+### Controls
+- **Start/Stop Search**: Control search execution
+- **Export Results**: Save architectures and results
+- **Real-time Updates**: Live status and progress tracking
+
+## ⚙️ Configuration
+
+Configure search parameters through the web interface or modify defaults in `gui.py`:
+
+```python
+config = SearchConfig(
+    population_size=4,      # Architectures per generation
+    max_generations=3,      # Evolution generations
+    mutation_rate=0.3,      # Mutation probability
+    epochs_per_eval=5,      # Training epochs per architecture
+    batch_size=64,          # Training batch size
+    early_stopping_patience=3
+)
+```
+
+## 📊 Output
+
+- **Real-time GUI**: Live monitoring and control
+- **Architecture JSON**: Best discovered architecture
+- **Search Results**: Complete evolution history
+- **Visualizations**: Performance charts and evolution plots
+- **Export Files**: Downloadable results in JSON format
+
+## 🔧 Advanced Usage
+
+### Command Line (Core NAS only)
 ```bash
 python nas.py
 ```
 
-2. The script will:
-    - Load and preprocess the CIFAR-10 dataset
-    - Run the evolutionary search
-    - Save the best architecture and model weights
-    - Generate performance plots
-
-## Configuration
-
-The search can be configured by modifying the SearchConfig class parameters in nas.py:
-
+### Direct GUI Launch
 ```bash
-config = SearchConfig(
-    population_size=6,      # Number of architectures in each generation
-    max_generations=5,      # Maximum number of generations
-    mutation_rate=0.3,      # Probability of mutation
-    epochs_per_eval=10,     # Training epochs per architecture
-    batch_size=128,         # Batch size for training
-    early_stopping_patience=5,
-    reduce_lr_patience=3
-)
+python gui.py
 ```
 
-## Output
-The script will generate:
+## 🛠️ Requirements
 
-- best_architecture.json: The best found architecture specification
-- nas_best_model.h5: Trained weights of the best model
-- Performance plots showing the evolution of the search
+- Python 3.8+
+- TensorFlow 2.8.0+
+- Flask 2.0+
+- NumPy 1.19.2+
+- Matplotlib 3.5.0+
 
-## Results
-The search process will display:
+## 📈 Results
 
-- Progress of each generation
-- Best validation accuracy achieved
-- Model architecture summary
-- Performance metrics on the validation set
+The GUI provides:
+- Real-time search progress
+- Best validation accuracy tracking
+- Architecture evolution visualization
+- Complete search history
+- Exportable results
 
-## Next Steps
-- Extended Training: Train the best model for more epochs on the full dataset
-- Evaluation: Test the model on the test set
-- Transfer Learning: Use the discovered architecture for other image classification tasks
-- Deployment: Convert to TensorFlow Lite for mobile deployment
+## 🚀 Next Steps
 
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- **Extended Training**: Train best model for more epochs
+- **Evaluation**: Test on full test set
+- **Transfer Learning**: Apply to other datasets
+- **Deployment**: Convert to TensorFlow Lite
+- **Scaling**: Distributed search across multiple GPUs
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
